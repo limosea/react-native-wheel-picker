@@ -11,6 +11,15 @@ import com.facebook.react.uimanager.UIManagerModule
 import com.facebook.react.uimanager.events.EventDispatcher
 import com.facebook.react.uimanager.events.Event
 
+private class WheelPickerValueEvent(viewId: Int, private val index: Int) : Event<WheelPickerValueEvent>(viewId) {
+    override fun getEventName(): String = "onValueChange"
+    override fun canCoalesce(): Boolean = false
+    override fun dispatch(rctEventEmitter: RCTEventEmitter) {
+        val event = Arguments.createMap().apply { putInt("index", index) }
+        rctEventEmitter.receiveEvent(viewTag, eventName, event)
+    }
+}
+
 @ReactModule(name = WheelPickerViewManager.REACT_CLASS)
 class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
 
