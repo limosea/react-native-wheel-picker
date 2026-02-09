@@ -7,6 +7,9 @@ import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.annotations.ReactProp
 import com.facebook.react.uimanager.events.RCTEventEmitter
+import com.facebook.react.uimanager.UIManagerModule
+import com.facebook.react.uimanager.events.EventDispatcher
+import com.facebook.react.uimanager.events.Event
 
 @ReactModule(name = WheelPickerViewManager.REACT_CLASS)
 class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
@@ -20,11 +23,11 @@ class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
     override fun createViewInstance(context: ThemedReactContext): WheelPickerView {
         return WheelPickerView(context).apply {
             setOnValueChangedListener { index ->
-                val event = Arguments.createMap().apply {
-                    putInt("index", index)
+                // Dispatch event through UIManager's EventDispatcher for lower latency
+                val uiManager = context.getNativeModule(UIManagerModule::class.java)
+                uiManager?.let {
+                    it.eventDispatcher.dispatchEvent(WheelPickerEvent(id, index))
                 }
-                context.getJSModule(RCTEventEmitter::class.java)
-                    .receiveEvent(id, "onValueChange", event)
             }
         }
     }
