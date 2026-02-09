@@ -7,6 +7,10 @@ import UIKit
     private var unit: String?
     private var fontFamily: String?
     private var lastSelectedIndex: Int = 0
+    private var isUserDragging: Bool = false
+    private var isDecelerating: Bool = false
+    private var lastEventTimestamp: TimeInterval = 0
+    private let MIN_EVENT_INTERVAL_MS: TimeInterval = 0.016 // ~16ms
 
     private let feedbackGenerator = UISelectionFeedbackGenerator()
 
@@ -164,7 +168,10 @@ import UIKit
         guard index >= 0 && index < items.count else { return }
         selectedIndex = index
         lastSelectedIndex = index
-        scrollToIndex(index, animated: false)
+        // Only scroll programmatically if user is not currently dragging
+        if !isUserDragging && !isDecelerating {
+            scrollToIndex(index, animated: false)
+        }
     }
 
     @objc public func setTextColor(_ color: UIColor) {
@@ -193,21 +200,33 @@ import UIKit
 
         if nearestIndex != selectedIndex {
             selectedIndex = nearestIndex
+            lastSelectedIndex = nearestIndex
+            // ensure final snap event is emitted immediately
+            lastEventTimestamp = Date().timeIntervalSince1970
             onValueChange?(selectedIndex)
         }
     }
 
     private func checkAndTriggerHaptic() {
         guard items.count > 0 else { return }
+        // Only trigger haptic during user interaction, not during programmatic scroll
+        if !isUserDragging && !isDecelerating { return }
 
         let currentOffset = scrollView.contentOffset.y
         let currentIndex = Int(round(currentOffset / itemHeight))
         let clampedIndex = max(0, min(items.count - 1, currentIndex))
+        let now = Date().timeIntervalSince1970
 
         if clampedIndex != lastSelectedIndex {
-            lastSelectedIndex = clampedIndex
-            feedbackGenerator.selectionChanged()
-            feedbackGenerator.prepare()
+            // Rate-limit events to roughly 60fps to reduce JS bridge overhead
+            if now - lastEventTimestamp >= MIN_EVENT_INTERVAL_MS {
+                lastSelectedIndex = clampedIndex
+                lastEventTimestamp = now
+                feedbackGenerator.selectionChanged()
+                feedbackGenerator.prepare()
+                // Fire callback only during user interaction
+                onValueChange?(clampedIndex)
+            }
         }
     }
 }
@@ -218,13 +237,23 @@ extension WheelPickerView: UIScrollViewDelegate {
         checkAndTriggerHaptic()
     }
 
+    public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        isUserDragging = true
+        isDecelerating = false
+    }
+
     public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        isUserDragging = false
         if !decelerate {
+            isDecelerating = false
             snapToNearestItem()
+        } else {
+            isDecelerating = true
         }
     }
 
     public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        isDecelerating = false
         snapToNearestItem()
     }
 
