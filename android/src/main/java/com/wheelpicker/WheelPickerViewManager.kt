@@ -25,8 +25,16 @@ class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
             setOnValueChangedListener { index ->
                 // Dispatch event through UIManager's EventDispatcher for lower latency
                 val uiManager = context.getNativeModule(UIManagerModule::class.java)
-                uiManager?.let {
-                    it.eventDispatcher.dispatchEvent(WheelPickerEvent(id, index))
+                uiManager?.let { manager ->
+                    val evt = object : Event<Event>(id) {
+                        override fun getEventName(): String = "onValueChange"
+                        override fun canCoalesce(): Boolean = false
+                        override fun dispatch(rctEventEmitter: RCTEventEmitter) {
+                            val map = Arguments.createMap().apply { putInt("index", index) }
+                            rctEventEmitter.receiveEvent(viewTag, eventName, map)
+                        }
+                    }
+                    manager.eventDispatcher.dispatchEvent(evt)
                 }
             }
         }
