@@ -7,18 +7,6 @@ import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.annotations.ReactProp
 import com.facebook.react.uimanager.events.RCTEventEmitter
-import com.facebook.react.uimanager.UIManagerModule
-import com.facebook.react.uimanager.events.EventDispatcher
-import com.facebook.react.uimanager.events.Event
-
-private class WheelPickerValueEvent(viewId: Int, private val index: Int) : Event<WheelPickerValueEvent>(viewId) {
-    override fun getEventName(): String = "onValueChange"
-    override fun canCoalesce(): Boolean = false
-    override fun dispatch(rctEventEmitter: RCTEventEmitter) {
-        val event = Arguments.createMap().apply { putInt("index", index) }
-        rctEventEmitter.receiveEvent(viewTag, eventName, event)
-    }
-}
 
 @ReactModule(name = WheelPickerViewManager.REACT_CLASS)
 class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
@@ -32,19 +20,10 @@ class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
     override fun createViewInstance(context: ThemedReactContext): WheelPickerView {
         return WheelPickerView(context).apply {
             setOnValueChangedListener { index ->
-                // Dispatch event through UIManager's EventDispatcher for lower latency
-                val uiManager = context.getNativeModule(UIManagerModule::class.java)
-                uiManager?.let { manager ->
-                    val evt = object : Event<Event>(id) {
-                        override fun getEventName(): String = "onValueChange"
-                        override fun canCoalesce(): Boolean = false
-                        override fun dispatch(rctEventEmitter: RCTEventEmitter) {
-                            val map = Arguments.createMap().apply { putInt("index", index) }
-                            rctEventEmitter.receiveEvent(viewTag, eventName, map)
-                        }
-                    }
-                    manager.eventDispatcher.dispatchEvent(evt)
-                }
+                // Dispatch event directly via RCTEventEmitter for real-time callbacks
+                val eventEmitter = context.getJSModule(RCTEventEmitter::class.java)
+                val event = Arguments.createMap().apply { putInt("index", index) }
+                eventEmitter?.receiveEvent(id, "onValueChange", event)
             }
         }
     }
