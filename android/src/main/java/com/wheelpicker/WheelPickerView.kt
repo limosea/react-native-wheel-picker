@@ -80,6 +80,8 @@ class WheelPickerView @JvmOverloads constructor(
                 scroller.abortAnimation()
                 isFling = false
             }
+            // 请求父视图不要拦截触摸事件
+            parent?.requestDisallowInterceptTouchEvent(true)
             return true
         }
 
@@ -184,29 +186,37 @@ class WheelPickerView @JvmOverloads constructor(
                 isUserTouching = true
                 velocityTracker?.recycle()
                 velocityTracker = VelocityTracker.obtain()
+                // 请求父视图不要拦截触摸事件
+                parent?.requestDisallowInterceptTouchEvent(true)
             }
             MotionEvent.ACTION_MOVE -> {
                 velocityTracker?.addMovement(event)
+                // 持续请求父视图不要拦截触摸事件
+                parent?.requestDisallowInterceptTouchEvent(true)
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                // compute velocity to determine whether this was a fling-like release
+                // 计算速度以确定这是否是类似飞掠的释放
                 velocityTracker?.apply {
                     addMovement(event)
                     computeCurrentVelocity(1000)
                     val vy = yVelocity
-                    // treat as fling if above threshold
+                    // 如果超过阈值则视为飞掠
                     isFling = kotlin.math.abs(vy) > FLING_VELOCITY_THRESHOLD
                     recycle()
                 }
                 velocityTracker = null
 
                 isUserTouching = false
+                // 释放时允许父视图重新拦截事件
+                parent?.requestDisallowInterceptTouchEvent(false)
+                
                 if (!isFling) {
                     snapToNearestItem()
                 }
             }
         }
         val handled = gestureDetector.onTouchEvent(event)
+        // 确保消费所有触摸事件以防止穿透
         return handled || super.onTouchEvent(event)
     }
 
@@ -219,7 +229,7 @@ class WheelPickerView @JvmOverloads constructor(
 
             if (scroller.isFinished) {
                 isFling = false
-                // don't snap while the user is touching the view
+                // 用户触摸时不触发snap
                 if (!isUserTouching) {
                     snapToNearestItem()
                 }
@@ -231,18 +241,19 @@ class WheelPickerView @JvmOverloads constructor(
         val maxScroll = (items.size - 1) * itemHeight
         scrollOffset = scrollOffset.coerceIn(0f, maxScroll)
     }
+    
     private var lastEventTimestamp: Long = 0L
     private val MIN_EVENT_INTERVAL_MS: Long = 16L
 
     private fun checkAndTriggerHaptic() {
         if (items.isEmpty()) return
-        // Only trigger haptic and callbacks during user interaction, not during snap animation
+        // 仅在用户交互期间触发触觉反馈和回调，不在snap动画期间
         if (!isUserTouching && !isFling) return
 
         val currentIndex = (scrollOffset / itemHeight).roundToInt().coerceIn(0, items.size - 1)
         val now = System.currentTimeMillis()
         if (currentIndex != lastSelectedIndex) {
-            // Rate-limit events to roughly 60fps to reduce JS bridge overhead
+            // 限制事件频率至约60fps以减少JS桥接开销
             if (now - lastEventTimestamp >= MIN_EVENT_INTERVAL_MS) {
                 lastSelectedIndex = currentIndex
                 lastEventTimestamp = now
@@ -267,10 +278,10 @@ class WheelPickerView @JvmOverloads constructor(
     private fun snapToNearestItem() {
         if (items.isEmpty()) return
 
-        // If user is still touching, don't trigger programmatic snap
+        // 如果用户仍在触摸，则不触发程序化snap
         if (isUserTouching) return
 
-        // Abort any existing animation to avoid overlapping scrolls which can cause jumps
+        // 中止任何现有动画以避免重叠滚动导致跳跃
         if (!scroller.isFinished) {
             scroller.abortAnimation()
         }
@@ -278,7 +289,7 @@ class WheelPickerView @JvmOverloads constructor(
         val targetIndex = (scrollOffset / itemHeight).roundToInt().coerceIn(0, items.size - 1)
         val targetOffset = targetIndex * itemHeight
 
-        // If already at the target, no need to start a scroll
+        // 如果已在目标位置，则无需开始滚动
         if (kotlin.math.abs(targetOffset - scrollOffset) < 1f) {
             if (targetIndex != selectedIndex) {
                 selectedIndex = targetIndex
@@ -298,7 +309,7 @@ class WheelPickerView @JvmOverloads constructor(
         if (targetIndex != selectedIndex) {
             selectedIndex = targetIndex
             lastSelectedIndex = targetIndex
-            // ensure final snap event is emitted immediately
+            // 确保立即发出最终snap事件
             lastEventTimestamp = System.currentTimeMillis()
             onValueChanged?.invoke(selectedIndex)
         }
@@ -320,7 +331,7 @@ class WheelPickerView @JvmOverloads constructor(
         if (index in items.indices) {
             selectedIndex = index
             lastSelectedIndex = index
-            // Only update scrollOffset when not interacting to avoid interrupting user
+            // 仅在未交互时更新scrollOffset以避免中断用户操作
             if (!isUserTouching && !isFling) {
                 scrollOffset = index * itemHeight
             }

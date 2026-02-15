@@ -11,6 +11,7 @@ A high-performance native wheel picker for React Native with smooth scrolling, h
 - Optional unit labels (e.g., "kg", "cm")
 - Multi-column picker support
 - TypeScript support
+- **Enhanced scroll event handling** - Prevents scroll event penetration to outer ScrollView components
 
 ## Installation
 
@@ -118,53 +119,43 @@ function HeightPicker() {
 
 ## Props
 
-### WheelPicker
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `items` | `string[]` | Yes | Array of string items to display |
+| `selectedIndex` | `number` | Yes | Index of the currently selected item |
+| `unit` | `string` | No | Optional unit label (e.g., "kg", "cm") |
+| `fontFamily` | `string` | No | Custom font family name |
+| `onValueChange` | `(index: number) => void` | No | Callback when selection changes |
+| `style` | `StyleProp<ViewStyle>` | No | Container style |
+| `testID` | `string` | No | Test ID for e2e testing |
 
-| Prop            | Type                      | Required | Description                                 |
-| --------------- | ------------------------- | -------- | ------------------------------------------- |
-| `items`         | `string[]`                | Yes      | Array of items to display                   |
-| `selectedIndex` | `number`                  | Yes      | Currently selected item index               |
-| `onValueChange` | `(index: number) => void` | No       | Callback when selection changes             |
-| `unit`          | `string`                  | No       | Unit label displayed next to selected value |
-| `fontFamily`    | `string`                  | No       | Custom font family name                     |
-| `style`         | `ViewStyle`               | No       | Container style                             |
-| `testID`        | `string`                  | No       | Test ID for e2e testing                     |
+## Performance Notes
 
-### MultiColumnWheelPicker
+For optimal performance with frequent updates (like time pickers):
 
-| Prop         | Type            | Required | Description                    |
-| ------------ | --------------- | -------- | ------------------------------ |
-| `columns`    | `WheelColumn[]` | Yes      | Array of column configurations |
-| `fontFamily` | `string`        | No       | Font family for all columns    |
-| `style`      | `ViewStyle`     | No       | Container style                |
-| `testID`     | `string`        | No       | Test ID for e2e testing        |
+1. Use `useCallback` for `onValueChange` handler
+2. Memoize item arrays with `useMemo`
+3. Consider debouncing rapid updates if needed
 
-### WheelColumn
+Example:
+```tsx
+const [hours, setHours] = useState(0);
 
-| Property        | Type                      | Required | Description                     |
-| --------------- | ------------------------- | -------- | ------------------------------- |
-| `values`        | `string[]`                | Yes      | Array of values for this column |
-| `selectedIndex` | `number`                  | Yes      | Selected index for this column  |
-| `onSelect`      | `(index: number) => void` | Yes      | Selection callback              |
-| `unit`          | `string`                  | No       | Unit label for this column      |
-| `width`         | `number`                  | No       | Flex width (default: 1)         |
+const onValueChange = useCallback((index: number) => {
+  setHours(index);
+}, []);
 
-## Customization
+const pickerItems = useMemo(() => 
+  Array.from({length: 24}, (_, i) => String(i).padStart(2, '0')),
+  []
+);
 
-### Visual Specifications
-
-- Item height: 48dp
-- Visible items: 5
-- Text size: 24sp
-- Selection indicator: Rounded rectangle with 16dp corner radius
-- Default text color: `#1C1C1C`
-- Selection background: `#F7F9FF`
-
-### Font Setup
-
-**iOS**: Use the PostScript name of the font (e.g., `SFProText-Semibold`)
-
-**Android**: Place font files in `android/app/src/main/assets/fonts/` with matching names (e.g., `SFProText-Semibold.ttf` or `.otf`)
+<WheelPicker
+  items={pickerItems}
+  selectedIndex={hours}
+  onValueChange={onValueChange}
+/>
+```
 
 ## License
 

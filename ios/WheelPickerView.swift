@@ -21,7 +21,7 @@ import UIKit
     private let itemHeight: CGFloat = 48
     private let visibleItems: Int = 5
 
-    // Customizable colors
+    // 可自定义的颜色
     private var textColor: UIColor = UIColor(red: 28/255, green: 28/255, blue: 28/255, alpha: 1)
     private var selectionBackgroundColor: UIColor = UIColor(red: 247/255, green: 249/255, blue: 255/255, alpha: 1)
 
@@ -50,6 +50,9 @@ import UIKit
         scrollView.decelerationRate = .normal
         scrollView.bounces = true
         scrollView.alwaysBounceVertical = true
+        // 关键修改：禁用嵌套滚动以防止事件穿透
+        scrollView.canCancelContentTouches = true
+        scrollView.delaysContentTouches = true
         addSubview(scrollView)
 
         scrollView.addSubview(contentView)
@@ -168,7 +171,7 @@ import UIKit
         guard index >= 0 && index < items.count else { return }
         selectedIndex = index
         lastSelectedIndex = index
-        // Only scroll programmatically if user is not currently dragging
+        // 仅在用户当前未拖动时才程序化滚动
         if !isUserDragging && !isDecelerating {
             scrollToIndex(index, animated: false)
         }
@@ -201,7 +204,7 @@ import UIKit
         if nearestIndex != selectedIndex {
             selectedIndex = nearestIndex
             lastSelectedIndex = nearestIndex
-            // ensure final snap event is emitted immediately
+            // 确保立即发出最终snap事件
             lastEventTimestamp = Date().timeIntervalSince1970
             onValueChange?(selectedIndex)
         }
@@ -209,7 +212,7 @@ import UIKit
 
     private func checkAndTriggerHaptic() {
         guard items.count > 0 else { return }
-        // Only trigger haptic during user interaction, not during programmatic scroll
+        // 仅在用户交互期间触发触觉反馈，不在程序化滚动期间
         if !isUserDragging && !isDecelerating { return }
 
         let currentOffset = scrollView.contentOffset.y
@@ -218,13 +221,13 @@ import UIKit
         let now = Date().timeIntervalSince1970
 
         if clampedIndex != lastSelectedIndex {
-            // Rate-limit events to roughly 60fps to reduce JS bridge overhead
+            // 限制事件频率至约60fps以减少JS桥接开销
             if now - lastEventTimestamp >= MIN_EVENT_INTERVAL_MS {
                 lastSelectedIndex = clampedIndex
                 lastEventTimestamp = now
                 feedbackGenerator.selectionChanged()
                 feedbackGenerator.prepare()
-                // Fire callback only during user interaction
+                // 仅在用户交互期间触发回调
                 onValueChange?(clampedIndex)
             }
         }
@@ -240,6 +243,12 @@ extension WheelPickerView: UIScrollViewDelegate {
     public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         isUserDragging = true
         isDecelerating = false
+        // 关键修改：拖动开始时通知父视图不要拦截触摸事件
+        superview?.superview?.gestureRecognizers?.forEach { recognizer in
+            if let panGesture = recognizer as? UIPanGestureRecognizer {
+                panGesture.delaysTouchesBegan = true
+            }
+        }
     }
 
     public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
@@ -261,5 +270,20 @@ extension WheelPickerView: UIScrollViewDelegate {
         let maxOffset = CGFloat(max(0, items.count - 1)) * itemHeight
         let clampedTarget = max(0, min(maxOffset, targetContentOffset.pointee.y))
         targetContentOffset.pointee.y = clampedTarget
+    }
+    
+    // 关键修改：添加触摸处理方法以更好地控制事件流
+    public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        let hitView = super.hitTest(point, with: event)
+        // 确保触摸事件被正确处理
+        if hitView == scrollView || hitView?.isDescendant(of: scrollView) == true {
+            return hitView
+        }
+        return nil
+    }
+    
+    public override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        // 确保整个视图区域都能接收触摸事件
+        return bounds.contains(point)
     }
 }
