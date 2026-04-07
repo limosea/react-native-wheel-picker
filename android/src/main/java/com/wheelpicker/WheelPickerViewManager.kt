@@ -54,6 +54,21 @@ class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
         view.setFontFamily(fontFamily)
     }
 
+    @ReactProp(name = "immediateCallback")
+    fun setImmediateCallback(view: WheelPickerView, immediateCallback: Boolean) {
+        view.setImmediateCallback(immediateCallback)
+    }
+
+    @ReactProp(name = "textColor")
+    fun setTextColor(view: WheelPickerView, color: String?) {
+        color?.let { view.setTextColor(it) }
+    }
+
+    @ReactProp(name = "textSize")
+    fun setTextSize(view: WheelPickerView, size: Float) {
+        view.setTextSize(size)
+    }
+
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> {
         return mapOf(
             "onValueChange" to mapOf("registrationName" to "onValueChange")

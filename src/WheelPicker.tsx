@@ -32,10 +32,28 @@ export interface WheelPickerProps {
   fontFamily?: string;
 
   /**
+   * Text color for the picker items
+   * @default "#1C1C1C"
+   */
+  textColor?: string;
+
+  /**
+   * Text size for the picker items in sp/dp
+   * @default 24
+   */
+  textSize?: number;
+
+  /**
    * Callback when the selected value changes
    * @param index - The new selected index
    */
   onValueChange?: (index: number) => void;
+
+  /**
+   * Whether to trigger callback immediately during scrolling or only when scrolling stops
+   * @default true (immediate callback during scrolling)
+   */
+  immediateCallback?: boolean;
 
   /**
    * Style for the picker container
@@ -53,6 +71,9 @@ interface NativeWheelPickerProps {
   selectedIndex: number;
   unit?: string;
   fontFamily?: string;
+  textColor?: string;
+  textSize?: number;
+  immediateCallback?: boolean;
   onValueChange?: (event: { nativeEvent: { index: number } }) => void;
   style?: StyleProp<ViewStyle>;
 }
@@ -69,7 +90,10 @@ export function WheelPicker({
   selectedIndex,
   unit,
   fontFamily,
+  textColor,
+  textSize,
   onValueChange,
+  immediateCallback = true,
   style,
   testID,
 }: WheelPickerProps): React.ReactElement | null {
@@ -94,6 +118,9 @@ export function WheelPicker({
         selectedIndex={selectedIndex}
         unit={unit}
         fontFamily={fontFamily}
+        textColor={textColor}
+        textSize={textSize}
+        immediateCallback={immediateCallback}
         onValueChange={handleValueChange}
         style={styles.picker}
       />

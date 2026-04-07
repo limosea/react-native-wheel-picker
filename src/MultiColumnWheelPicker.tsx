@@ -42,6 +42,24 @@ export interface MultiColumnWheelPickerProps {
   fontFamily?: string;
 
   /**
+   * Text color for all picker items
+   * @default "#1C1C1C"
+   */
+  textColor?: string;
+
+  /**
+   * Text size for all picker items in sp/dp
+   * @default 24
+   */
+  textSize?: number;
+
+  /**
+   * Whether to trigger callback immediately during scrolling or only when scrolling stops
+   * @default true (immediate callback during scrolling)
+   */
+  immediateCallback?: boolean;
+
+  /**
    * Style for the picker container
    */
   style?: StyleProp<ViewStyle>;
@@ -57,6 +75,9 @@ const PICKER_HEIGHT = 240;
 export function MultiColumnWheelPicker({
   columns,
   fontFamily,
+  textColor,
+  textSize,
+  immediateCallback = true,
   style,
   testID,
 }: MultiColumnWheelPickerProps): React.ReactElement {
@@ -72,6 +93,9 @@ export function MultiColumnWheelPicker({
             selectedIndex={column.selectedIndex}
             unit={column.unit}
             fontFamily={fontFamily}
+            textColor={textColor}
+            textSize={textSize}
+            immediateCallback={immediateCallback}
             onValueChange={column.onSelect}
             style={styles.picker}
           />

@@ -43,6 +43,9 @@ class WheelPickerView @JvmOverloads constructor(
     private val FLING_VELOCITY_THRESHOLD = 800f
 
     private var fontFamily: String? = null
+    private var immediateCallback: Boolean = true
+    private var textColor: Int = Color.parseColor("#1C1C1C")
+    private var textSize: Float = 24f
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = 24 * resources.displayMetrics.scaledDensity
@@ -124,6 +127,19 @@ class WheelPickerView @JvmOverloads constructor(
         val typeface = fontFamily?.let { loadTypeface(it) }
         textPaint.typeface = typeface
         unitPaint.typeface = typeface
+    }
+
+    private fun updateTextSize() {
+        val scaledTextSize = textSize * resources.displayMetrics.scaledDensity
+        textPaint.textSize = scaledTextSize
+        unitPaint.textSize = scaledTextSize
+        // 更新itemHeight以适应新的字体大小
+        // itemHeight = (textSize + 16) * resources.displayMetrics.density
+    }
+
+    private fun updateTextColor() {
+        textPaint.color = textColor
+        unitPaint.color = textColor
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -258,7 +274,10 @@ class WheelPickerView @JvmOverloads constructor(
                 lastSelectedIndex = currentIndex
                 lastEventTimestamp = now
                 triggerHaptic()
-                onValueChanged?.invoke(currentIndex)
+                // 根据immediateCallback决定是否立即回调
+                if (immediateCallback) {
+                    onValueChanged?.invoke(currentIndex)
+                }
             }
         }
     }
@@ -295,6 +314,7 @@ class WheelPickerView @JvmOverloads constructor(
                 selectedIndex = targetIndex
                 lastSelectedIndex = targetIndex
                 lastEventTimestamp = System.currentTimeMillis()
+                // 松手时总是触发回调（无论immediateCallback设置）
                 onValueChanged?.invoke(selectedIndex)
             }
             return
@@ -311,6 +331,7 @@ class WheelPickerView @JvmOverloads constructor(
             lastSelectedIndex = targetIndex
             // 确保立即发出最终snap事件
             lastEventTimestamp = System.currentTimeMillis()
+            // 松手时总是触发回调（无论immediateCallback设置）
             onValueChanged?.invoke(selectedIndex)
         }
 
@@ -339,6 +360,29 @@ class WheelPickerView @JvmOverloads constructor(
         }
     }
 
+    fun setImmediateCallback(immediate: Boolean) {
+        immediateCallback = immediate
+    }
+
+    fun setTextColor(color: String) {
+        try {
+            textColor = Color.parseColor(color)
+            updateTextColor()
+            invalidate()
+        } catch (e: IllegalArgumentException) {
+            // 如果解析失败，使用默认颜色
+            textColor = Color.parseColor("#1C1C1C")
+            updateTextColor()
+            invalidate()
+        }
+    }
+
+    fun setTextSize(size: Float) {
+        textSize = size
+        updateTextSize()
+        invalidate()
+    }
+
     fun setOnValueChangedListener(listener: (Int) -> Unit) {
         onValueChanged = listener
     }
@@ -350,8 +394,8 @@ class WheelPickerView @JvmOverloads constructor(
     }
 
     fun setTextColor(color: Int) {
-        textPaint.color = color
-        unitPaint.color = color
+        textColor = color
+        updateTextColor()
         invalidate()
     }
 

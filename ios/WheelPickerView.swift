@@ -11,6 +11,9 @@ import UIKit
     private var isDecelerating: Bool = false
     private var lastEventTimestamp: TimeInterval = 0
     private let MIN_EVENT_INTERVAL_MS: TimeInterval = 0.016 // ~16ms
+    private var immediateCallback: Bool = true
+    private var textColor: UIColor = UIColor(red: 28/255, green: 28/255, blue: 28/255, alpha: 1)
+    private var textSize: CGFloat = 24
 
     private let feedbackGenerator = UISelectionFeedbackGenerator()
 
@@ -22,7 +25,6 @@ import UIKit
     private let visibleItems: Int = 5
 
     // 可自定义的颜色
-    private var textColor: UIColor = UIColor(red: 28/255, green: 28/255, blue: 28/255, alpha: 1)
     private var selectionBackgroundColor: UIColor = UIColor(red: 247/255, green: 249/255, blue: 255/255, alpha: 1)
 
     @objc public var onValueChange: ((_ index: Int) -> Void)?
@@ -83,10 +85,10 @@ import UIKit
     }
 
     private func getFont() -> UIFont {
-        if let fontFamily = fontFamily, let customFont = UIFont(name: fontFamily, size: 24) {
+        if let fontFamily = fontFamily, let customFont = UIFont(name: fontFamily, size: textSize) {
             return customFont
         }
-        return UIFont.systemFont(ofSize: 24, weight: .semibold)
+        return UIFont.systemFont(ofSize: textSize, weight: .semibold)
     }
 
     private func updateLabels() {
@@ -167,6 +169,20 @@ import UIKit
         updateLabels()
     }
 
+    @objc public func setImmediateCallback(_ immediate: Bool) {
+        immediateCallback = immediate
+    }
+
+    @objc public func setTextColor(_ color: UIColor) {
+        textColor = color
+        updateLabels()
+    }
+
+    @objc public func setTextSize(_ size: CGFloat) {
+        textSize = size
+        updateLabels()
+    }
+
     @objc public func setSelectedIndex(_ index: Int) {
         guard index >= 0 && index < items.count else { return }
         selectedIndex = index
@@ -175,11 +191,6 @@ import UIKit
         if !isUserDragging && !isDecelerating {
             scrollToIndex(index, animated: false)
         }
-    }
-
-    @objc public func setTextColor(_ color: UIColor) {
-        textColor = color
-        updateLabels()
     }
 
     @objc public func setSelectionBackgroundColor(_ color: UIColor) {
@@ -206,6 +217,7 @@ import UIKit
             lastSelectedIndex = nearestIndex
             // 确保立即发出最终snap事件
             lastEventTimestamp = Date().timeIntervalSince1970
+            // 松手时总是触发回调（无论immediateCallback设置）
             onValueChange?(selectedIndex)
         }
     }
@@ -227,8 +239,10 @@ import UIKit
                 lastEventTimestamp = now
                 feedbackGenerator.selectionChanged()
                 feedbackGenerator.prepare()
-                // 仅在用户交互期间触发回调
-                onValueChange?(clampedIndex)
+                // 根据immediateCallback决定是否立即回调
+                if immediateCallback {
+                    onValueChange?(clampedIndex)
+                }
             }
         }
     }

@@ -4,14 +4,12 @@ A high-performance native wheel picker for React Native with smooth scrolling, h
 
 ## Features
 
-- Native implementation for both iOS and Android
-- Smooth scroll with momentum and snap-to-item
-- Haptic feedback on item change
-- Customizable font family
-- Optional unit labels (e.g., "kg", "cm")
-- Multi-column picker support
-- TypeScript support
-- **Enhanced scroll event handling** - Prevents scroll event penetration to outer ScrollView components
+- 🚀 Native implementation for smooth scrolling with momentum
+- 📱 Haptic feedback support
+- 🔠 Customizable font families, colors, and sizes
+- 🔄 Multi-column picker support (e.g., feet + inches)
+- 🛡️ Prevents scroll event penetration to outer ScrollView
+- ⚙️ Configurable callback timing (real-time vs on-release)
 
 ## Installation
 
@@ -119,42 +117,67 @@ function HeightPicker() {
 
 ## Props
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `items` | `string[]` | Yes | Array of string items to display |
-| `selectedIndex` | `number` | Yes | Index of the currently selected item |
-| `unit` | `string` | No | Optional unit label (e.g., "kg", "cm") |
-| `fontFamily` | `string` | No | Custom font family name |
-| `onValueChange` | `(index: number) => void` | No | Callback when selection changes |
-| `style` | `StyleProp<ViewStyle>` | No | Container style |
-| `testID` | `string` | No | Test ID for e2e testing |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | `string[]` | `required` | Array of string items to display |
+| `selectedIndex` | `number` | `required` | Currently selected index |
+| `unit` | `string` | `undefined` | Optional unit label (e.g., "kg", "cm") |
+| `fontFamily` | `string` | `undefined` | Custom font family name |
+| `textColor` | `string` | `"#1C1C1C"` | Text color in hex format (e.g., "#FF0000") |
+| `textSize` | `number` | `24` | Text size in sp/dp |
+| `immediateCallback` | `boolean` | `true` | Whether to trigger callback during scrolling (`true`) or only when scrolling stops (`false`) |
+| `onValueChange` | `(index: number) => void` | `undefined` | Callback when selection changes |
+| `style` | `ViewStyle` | `undefined` | Container style |
+| `testID` | `string` | `undefined` | Test ID for e2e testing |
 
-## Performance Notes
+## Callback Timing Behavior
 
-For optimal performance with frequent updates (like time pickers):
+The `immediateCallback` prop controls when the `onValueChange` callback is triggered:
 
-1. Use `useCallback` for `onValueChange` handler
-2. Memoize item arrays with `useMemo`
-3. Consider debouncing rapid updates if needed
+- **`immediateCallback={true}`** (default): Callback triggers continuously during scrolling
+  - Provides real-time feedback
+  - Good for UI updates that need to respond immediately
+  - Higher frequency of events
 
-Example:
+- **`immediateCallback={false}`**: Callback only triggers when scrolling stops
+  - Reduces event frequency
+  - Better for expensive operations
+  - Final value is always guaranteed when user releases
+
+Note: Regardless of the `immediateCallback` setting, the final selected value is always sent when the user releases the picker.
+
+## Styling Options
+
+### Text Color
+- Accepts hex color strings (e.g., `"#FF0000"`, `"#333"`, `"#FF6B6B"`)
+- Supports both 3-digit and 6-digit hex formats
+- Alpha channel is not supported in hex strings
+
+### Text Size
+- Specified in sp (Android) or dp (iOS) units
+- Default size is 24
+- Larger values increase readability but may affect item spacing
+
+### Font Family
+- Use system font names or custom fonts
+- Make sure custom fonts are properly registered in native projects
+
+## Performance Tips
+
+1. **Use `useCallback`** for `onValueChange` to prevent unnecessary re-renders
+2. **Memoize large item arrays** with `useMemo` to avoid recreation
+3. **Consider `immediateCallback={false}`** for expensive operations
+4. **Debounce rapid changes** if needed for very large datasets
+
 ```tsx
-const [hours, setHours] = useState(0);
-
-const onValueChange = useCallback((index: number) => {
-  setHours(index);
+const handleValueChange = useCallback((index: number) => {
+  setSelectedIndex(index);
+  // Expensive operation
 }, []);
 
-const pickerItems = useMemo(() => 
-  Array.from({length: 24}, (_, i) => String(i).padStart(2, '0')),
-  []
-);
-
-<WheelPicker
-  items={pickerItems}
-  selectedIndex={hours}
-  onValueChange={onValueChange}
-/>
+const memoizedItems = useMemo(() => {
+  return generateLargeItemList();
+}, []);
 ```
 
 ## License
