@@ -268,7 +268,7 @@ const handleValueChange = useCallback((index: number) => {
 const memoizedItems = useMemo(() => {
   return generateLargeItemList();
 }, []);
-````
+```
 
 ## License
 
