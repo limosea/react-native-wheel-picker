@@ -1,5 +1,7 @@
 # @limosea/react-native-wheel-picker
 
+[English](./README.md) | [中文](./README.zh-cn.md)
+
 A high-performance native wheel picker for React Native with smooth scrolling, haptic feedback, and customizable styling.
 
 This library is a fork of [react-native-wheel-picker](https://github.com/sinandsean/react-native-wheel-picker) with some improvements,mainly added real-time callback functionality and style customization.
@@ -203,19 +205,19 @@ const displayTime = React.useMemo(() => {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `items` | `string[]` | `required` | Array of string items to display |
-| `selectedIndex` | `number` | `required` | Currently selected index |
-| `unit` | `string` | `undefined` | Optional unit label (e.g., "kg", "cm") |
-| `fontFamily` | `string` | `undefined` | Custom font family name |
-| `textColor` | `string` | `"#1C1C1C"` | Text color in hex format (e.g., "#FF0000") |
-| `textSize` | `number` | `24` | Text size in dp (Android) / pt (iOS) |
-| `selectionBackgroundColor` | `string` | `"#F7F9FF"` | Background color of the selection indicator in hex format |
-| `immediateCallback` | `boolean` | `true` | Whether to trigger callback during scrolling (`true`) or only when scrolling stops (`false`) |
-| `onValueChange` | `(index: number) => void` | `undefined` | Callback when selection changes |
-| `style` | `ViewStyle` | `undefined` | Container style |
-| `testID` | `string` | `undefined` | Test ID for e2e testing |
+| Prop                       | Type                      | Default     | Description                                                                                  |
+| -------------------------- | ------------------------- | ----------- | -------------------------------------------------------------------------------------------- |
+| `items`                    | `string[]`                | `required`  | Array of string items to display                                                             |
+| `selectedIndex`            | `number`                  | `required`  | Currently selected index                                                                     |
+| `unit`                     | `string`                  | `undefined` | Optional unit label (e.g., "kg", "cm")                                                       |
+| `fontFamily`               | `string`                  | `undefined` | Custom font family name                                                                      |
+| `textColor`                | `string`                  | `"#1C1C1C"` | Text color in hex format (e.g., "#FF0000")                                                   |
+| `textSize`                 | `number`                  | `24`        | Text size in dp (Android) / pt (iOS)                                                         |
+| `selectionBackgroundColor` | `string`                  | `"#F7F9FF"` | Background color of the selection indicator in hex format                                    |
+| `immediateCallback`        | `boolean`                 | `true`      | Whether to trigger callback during scrolling (`true`) or only when scrolling stops (`false`) |
+| `onValueChange`            | `(index: number) => void` | `undefined` | Callback when selection changes                                                              |
+| `style`                    | `ViewStyle`               | `undefined` | Container style                                                                              |
+| `testID`                   | `string`                  | `undefined` | Test ID for e2e testing                                                                      |
 
 ## Callback Timing Behavior
 
@@ -236,21 +238,25 @@ Note: Regardless of the `immediateCallback` setting, the final selected value is
 ## Styling Options
 
 ### Text Color
+
 - Accepts hex color strings (e.g., `"#FF0000"`, `"#333"`, `"#FF6B6B"`)
 - Supports both 3-digit and 6-digit hex formats
 - Alpha channel is not supported in hex strings
 
 ### Text Size
+
 - Specified in dp (Android) or pt (iOS) units
 - Default size is 24
 - Larger values increase readability but may affect item spacing
 
 ### Selection Background Color
+
 - Accepts hex color strings (e.g., `"#F7F9FF"`, `"#E8F0FE"`)
 - Supports 3-digit, 4-digit (with alpha), 6-digit, and 8-digit (with alpha) hex formats
 - Customizes the background of the center selection indicator
 
 ### Font Family
+
 - Use system font names or custom fonts
 - Make sure custom fonts are properly registered in native projects
 
