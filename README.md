@@ -1,6 +1,8 @@
-# @sinandsean/react-native-wheel-picker
+# @limosea/react-native-wheel-picker
 
 A high-performance native wheel picker for React Native with smooth scrolling, haptic feedback, and customizable styling.
+
+This library is a fork of [react-native-wheel-picker](https://github.com/sinandsean/react-native-wheel-picker) with some improvements,mainly added real-time callback functionality and style customization.
 
 ## Features
 
@@ -14,9 +16,9 @@ A high-performance native wheel picker for React Native with smooth scrolling, h
 ## Installation
 
 ```bash
-npm install @sinandsean/react-native-wheel-picker
+npm install @limosea/react-native-wheel-picker
 # or
-yarn add @sinandsean/react-native-wheel-picker
+yarn add @limosea/react-native-wheel-picker
 ```
 
 ### iOS
@@ -34,7 +36,7 @@ No additional setup required. The library will auto-link.
 ### Basic Usage
 
 ```tsx
-import { WheelPicker } from "@sinandsean/react-native-wheel-picker";
+import { WheelPicker } from "@limosea/react-native-wheel-picker";
 
 function App() {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -64,7 +66,7 @@ function App() {
 ### Multi-Column Picker
 
 ```tsx
-import { MultiColumnWheelPicker } from "@sinandsean/react-native-wheel-picker";
+import { MultiColumnWheelPicker } from "@limosea/react-native-wheel-picker";
 
 function HeightPicker() {
   const [feet, setFeet] = useState(5);
@@ -146,7 +148,7 @@ const [selectedIndices, setSelectedIndices] = React.useState(() => {
 });
 
 const displayTime = React.useMemo(() => {
-  // Calculate time difference
+  // Calculate time difference here
   return {
     hours: hoursDiff,
     minutes: minutesDiff,
