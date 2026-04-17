@@ -91,10 +91,7 @@ export function MultiColumnWheelPicker({
   return (
     <View style={[styles.container, style]} testID={testID}>
       {columns.map((column, index) => (
-        <View
-          key={index}
-          style={[styles.column, { flex: column.width ?? 1 }]}
-        >
+        <View key={index} style={[styles.column, { flex: column.width ?? 1 }]}>
           <WheelPicker
             items={column.values}
             selectedIndex={column.selectedIndex}
