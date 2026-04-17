@@ -1,6 +1,6 @@
 {
   "name": "@limosea/react-native-wheel-picker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A high-performance native wheel picker for React Native with smooth scrolling, haptic feedback, and customizable styling",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
