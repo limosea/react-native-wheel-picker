@@ -13,9 +13,6 @@ class WheelPickerViewManager: RCTViewManager {
         return true
     }
 
-    override func constantsToExport() -> [AnyHashable : Any]! {
-        return [:]
-    }
 }
 
 @objc(WheelPickerViewWrapper)
@@ -67,6 +64,14 @@ class WheelPickerViewWrapper: UIView {
         }
     }
 
+    @objc var selectionBackgroundColor: NSString? {
+        didSet {
+            if let colorString = selectionBackgroundColor as String? {
+                wheelPicker.setSelectionBackgroundColor(hexStringToUIColor(hex: colorString))
+            }
+        }
+    }
+
     @objc var onValueChange: RCTDirectEventBlock?
 
     override init(frame: CGRect) {
@@ -99,27 +104,61 @@ class WheelPickerViewWrapper: UIView {
             cString.remove(at: cString.startIndex)
         }
 
-        if cString.count != 6 && cString.count != 8 {
+        let defaultColor = UIColor(red: 28/255, green: 28/255, blue: 28/255, alpha: 1)
+
+        let alpha: CGFloat
+        let red: CGFloat
+        let green: CGFloat
+        let blue: CGFloat
+
+        switch cString.count {
+        case 3:
+            let chars = Array(cString)
+            guard
+                let r = Int(String([chars[0], chars[0]]), radix: 16),
+                let g = Int(String([chars[1], chars[1]]), radix: 16),
+                let b = Int(String([chars[2], chars[2]]), radix: 16)
+            else {
+                return defaultColor
+            }
+            alpha = 1.0
+            red = CGFloat(r) / 255.0
+            green = CGFloat(g) / 255.0
+            blue = CGFloat(b) / 255.0
+        case 4:
+            let chars = Array(cString)
+            guard
+                let a = Int(String([chars[0], chars[0]]), radix: 16),
+                let r = Int(String([chars[1], chars[1]]), radix: 16),
+                let g = Int(String([chars[2], chars[2]]), radix: 16),
+                let b = Int(String([chars[3], chars[3]]), radix: 16)
+            else {
+                return defaultColor
+            }
+            alpha = CGFloat(a) / 255.0
+            red = CGFloat(r) / 255.0
+            green = CGFloat(g) / 255.0
+            blue = CGFloat(b) / 255.0
+        case 6:
+            guard let value = Int(cString, radix: 16) else {
+                return defaultColor
+            }
+            alpha = 1.0
+            red = CGFloat((value >> 16) & 0xFF) / 255.0
+            green = CGFloat((value >> 8) & 0xFF) / 255.0
+            blue = CGFloat(value & 0xFF) / 255.0
+        case 8:
+            guard let value = Int(cString, radix: 16) else {
+                return defaultColor
+            }
+            alpha = CGFloat((value >> 24) & 0xFF) / 255.0
+            red = CGFloat((value >> 16) & 0xFF) / 255.0
+            green = CGFloat((value >> 8) & 0xFF) / 255.0
+            blue = CGFloat(value & 0xFF) / 255.0
+        default:
             return UIColor(red: 28/255, green: 28/255, blue: 28/255, alpha: 1)
         }
 
-        var rgbValue: UInt64 = 0
-        Scanner(string: cString).scanHexInt64(&rgbValue)
-
-        if cString.count == 6 {
-            return UIColor(
-                red: CGFloat((rgbValue & 0xFF0000) >> 16) / 255.0,
-                green: CGFloat((rgbValue & 0x00FF00) >> 8) / 255.0,
-                blue: CGFloat(rgbValue & 0x0000FF) / 255.0,
-                alpha: 1.0
-            )
-        } else {
-            return UIColor(
-                red: CGFloat((rgbValue & 0xFF000000) >> 24) / 255.0,
-                green: CGFloat((rgbValue & 0x00FF0000) >> 16) / 255.0,
-                blue: CGFloat((rgbValue & 0x0000FF00) >> 8) / 255.0,
-                alpha: CGFloat(rgbValue & 0x000000FF) / 255.0
-            )
-        }
+        return UIColor(red: red, green: green, blue: blue, alpha: alpha)
     }
 }

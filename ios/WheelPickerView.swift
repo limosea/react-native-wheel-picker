@@ -14,6 +14,7 @@ import UIKit
     private var immediateCallback: Bool = true
     private var textColor: UIColor = UIColor(red: 28/255, green: 28/255, blue: 28/255, alpha: 1)
     private var textSize: CGFloat = 24
+    private var lastLayoutWidth: CGFloat = 0
 
     private let feedbackGenerator = UISelectionFeedbackGenerator()
 
@@ -80,7 +81,12 @@ import UIKit
 
         scrollView.contentInset = .zero
 
-        updateLabels()
+        if lastLayoutWidth != bounds.width {
+            lastLayoutWidth = bounds.width
+            updateLabels()
+        } else {
+            updateLabelAppearances()
+        }
         scrollToIndex(selectedIndex, animated: false)
     }
 
@@ -92,34 +98,60 @@ import UIKit
     }
 
     private func updateLabels() {
-        contentView.subviews.forEach { $0.removeFromSuperview() }
-
         let font = getFont()
         let padding = itemHeight * CGFloat(visibleItems / 2)
+        let hasUnit = unit != nil
+
+        // 计算需要的 label 数量（有 unit 时每项 2 个 label）
+        let labelsPerItem = hasUnit ? 2 : 1
+        let neededCount = items.count * labelsPerItem
+        let existingSubviews = contentView.subviews
+
+        // 移除多余 label
+        if existingSubviews.count > neededCount {
+            for i in stride(from: existingSubviews.count - 1, through: neededCount, by: -1) {
+                existingSubviews[i].removeFromSuperview()
+            }
+        }
 
         for (index, item) in items.enumerated() {
-            let label = UILabel()
+            let yPosition = padding + CGFloat(index) * itemHeight
+            let labelIndex = index * labelsPerItem
+
+            // 复用或创建主 label
+            let label: UILabel
+            if labelIndex < contentView.subviews.count, let existing = contentView.subviews[labelIndex] as? UILabel {
+                label = existing
+            } else {
+                label = UILabel()
+                contentView.addSubview(label)
+            }
             label.text = item
-            label.textAlignment = .center
             label.font = font
             label.textColor = textColor
-            let yPosition = padding + CGFloat(index) * itemHeight
-            label.frame = CGRect(x: 0, y: yPosition, width: bounds.width, height: itemHeight)
             label.tag = index
-            contentView.addSubview(label)
 
-            if let unit = unit {
-                let unitLabel = UILabel()
+            if hasUnit {
+                label.textAlignment = .right
+                label.frame = CGRect(x: 0, y: yPosition, width: bounds.width / 2 - 12, height: itemHeight)
+
+                let unitLabelIndex = labelIndex + 1
+                let unitLabel: UILabel
+                if unitLabelIndex < contentView.subviews.count, let existing = contentView.subviews[unitLabelIndex] as? UILabel {
+                    unitLabel = existing
+                } else {
+                    unitLabel = UILabel()
+                    contentView.addSubview(unitLabel)
+                }
                 unitLabel.text = unit
                 unitLabel.textAlignment = .left
                 unitLabel.font = font
                 unitLabel.textColor = textColor
                 unitLabel.frame = CGRect(x: bounds.width / 2 + 8, y: yPosition, width: 50, height: itemHeight)
                 unitLabel.tag = 1000 + index
-                contentView.addSubview(unitLabel)
-
-                label.frame = CGRect(x: 0, y: yPosition, width: bounds.width / 2 - 12, height: itemHeight)
-                label.textAlignment = .right
+            } else {
+                label.textAlignment = .center
+                label.frame = CGRect(x: 0, y: yPosition, width: bounds.width, height: itemHeight)
             }
         }
 
@@ -157,6 +189,7 @@ import UIKit
     @objc public func setItems(_ newItems: [String]) {
         items = newItems
         updateLabels()
+        setNeedsLayout()
     }
 
     @objc public func setUnit(_ newUnit: String?) {
@@ -185,6 +218,8 @@ import UIKit
 
     @objc public func setSelectedIndex(_ index: Int) {
         guard index >= 0 && index < items.count else { return }
+        // 防重入：如果 index 未变且未交互，跳过以避免 setState 循环
+        guard index != selectedIndex || isUserDragging || isDecelerating else { return }
         selectedIndex = index
         lastSelectedIndex = index
         // 仅在用户当前未拖动时才程序化滚动
@@ -203,14 +238,23 @@ import UIKit
         scrollView.setContentOffset(CGPoint(x: 0, y: offset), animated: animated)
     }
 
+    private var isSnapping: Bool = false
+
     private func snapToNearestItem() {
         guard items.count > 0 else { return }
+        guard !isSnapping else { return }
 
         let currentOffset = scrollView.contentOffset.y
         var nearestIndex = Int(round(currentOffset / itemHeight))
         nearestIndex = max(0, min(items.count - 1, nearestIndex))
 
-        scrollToIndex(nearestIndex, animated: true)
+        let targetOffset = CGFloat(nearestIndex) * itemHeight
+        let needsAnimation = abs(targetOffset - currentOffset) > 0.5
+
+        if needsAnimation {
+            isSnapping = true
+            scrollToIndex(nearestIndex, animated: true)
+        }
 
         if nearestIndex != selectedIndex {
             selectedIndex = nearestIndex
@@ -280,24 +324,23 @@ extension WheelPickerView: UIScrollViewDelegate {
         snapToNearestItem()
     }
 
+    public func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+        // snap 动画完成后重置标记
+        isSnapping = false
+        isDecelerating = false
+    }
+
     public func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
         let maxOffset = CGFloat(max(0, items.count - 1)) * itemHeight
         let clampedTarget = max(0, min(maxOffset, targetContentOffset.pointee.y))
         targetContentOffset.pointee.y = clampedTarget
     }
     
-    // 关键修改：添加触摸处理方法以更好地控制事件流
     public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let hitView = super.hitTest(point, with: event)
-        // 确保触摸事件被正确处理
-        if hitView == scrollView || hitView?.isDescendant(of: scrollView) == true {
-            return hitView
+        // 将整个视图区域内的触摸事件转发到 scrollView
+        if bounds.contains(point) {
+            return scrollView
         }
         return nil
-    }
-    
-    public override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        // 确保整个视图区域都能接收触摸事件
-        return bounds.contains(point)
     }
 }

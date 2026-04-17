@@ -11,8 +11,9 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.AttributeSet
+import android.Manifest
+import android.content.pm.PackageManager
 import android.view.GestureDetector
-import android.view.VelocityTracker
 import android.view.MotionEvent
 import android.view.View
 import android.widget.OverScroller
@@ -39,8 +40,6 @@ class WheelPickerView @JvmOverloads constructor(
     private val scroller = OverScroller(context)
     private var isFling = false
     private var isUserTouching = false
-    private var velocityTracker: VelocityTracker? = null
-    private val FLING_VELOCITY_THRESHOLD = 800f
 
     private var fontFamily: String? = null
     private var immediateCallback: Boolean = true
@@ -48,13 +47,13 @@ class WheelPickerView @JvmOverloads constructor(
     private var textSize: Float = 24f
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = 24 * resources.displayMetrics.scaledDensity
+        textSize = 24 * resources.displayMetrics.density
         color = Color.parseColor("#1C1C1C")
         textAlign = Paint.Align.CENTER
     }
 
     private val unitPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = 24 * resources.displayMetrics.scaledDensity
+        textSize = 24 * resources.displayMetrics.density
         color = Color.parseColor("#1C1C1C")
         textAlign = Paint.Align.LEFT
     }
@@ -66,6 +65,9 @@ class WheelPickerView @JvmOverloads constructor(
 
     private var unit: String? = null
     private var onValueChanged: ((Int) -> Unit)? = null
+
+    // 复用的 RectF 以避免在 onDraw 中每帧分配
+    private val selectionRect = RectF()
 
     private val vibrator: Vibrator by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -130,11 +132,9 @@ class WheelPickerView @JvmOverloads constructor(
     }
 
     private fun updateTextSize() {
-        val scaledTextSize = textSize * resources.displayMetrics.scaledDensity
+        val scaledTextSize = textSize * resources.displayMetrics.density
         textPaint.textSize = scaledTextSize
         unitPaint.textSize = scaledTextSize
-        // 更新itemHeight以适应新的字体大小
-        // itemHeight = (textSize + 16) * resources.displayMetrics.density
     }
 
     private fun updateTextColor() {
@@ -153,7 +153,7 @@ class WheelPickerView @JvmOverloads constructor(
 
         val cornerRadius = 16 * resources.displayMetrics.density
         val selectionTop = centerY - itemHeight / 2
-        val selectionRect = RectF(
+        selectionRect.set(
             28 * resources.displayMetrics.density,
             selectionTop,
             width - 28 * resources.displayMetrics.density,
@@ -197,41 +197,29 @@ class WheelPickerView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // 先让 GestureDetector 处理事件（可能触发 onFling 设置 isFling=true）
+        val handled = gestureDetector.onTouchEvent(event)
+
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 isUserTouching = true
-                velocityTracker?.recycle()
-                velocityTracker = VelocityTracker.obtain()
                 // 请求父视图不要拦截触摸事件
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
             MotionEvent.ACTION_MOVE -> {
-                velocityTracker?.addMovement(event)
                 // 持续请求父视图不要拦截触摸事件
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                // 计算速度以确定这是否是类似飞掠的释放
-                velocityTracker?.apply {
-                    addMovement(event)
-                    computeCurrentVelocity(1000)
-                    val vy = yVelocity
-                    // 如果超过阈值则视为飞掠
-                    isFling = kotlin.math.abs(vy) > FLING_VELOCITY_THRESHOLD
-                    recycle()
-                }
-                velocityTracker = null
-
                 isUserTouching = false
                 // 释放时允许父视图重新拦截事件
                 parent?.requestDisallowInterceptTouchEvent(false)
-                
+
                 if (!isFling) {
                     snapToNearestItem()
                 }
             }
         }
-        val handled = gestureDetector.onTouchEvent(event)
         // 确保消费所有触摸事件以防止穿透
         return handled || super.onTouchEvent(event)
     }
@@ -283,14 +271,19 @@ class WheelPickerView @JvmOverloads constructor(
     }
 
     private fun triggerHaptic() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(10)
+        if (context.checkSelfPermission(Manifest.permission.VIBRATE) != PackageManager.PERMISSION_GRANTED) return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(10)
+            }
+        } catch (_: Exception) {
+            // 静默失败，触觉反馈不影响核心功能
         }
     }
 
@@ -350,6 +343,8 @@ class WheelPickerView @JvmOverloads constructor(
 
     fun setSelectedIndex(index: Int) {
         if (index in items.indices) {
+            // 防重入：如果 index 未变且未交互，跳过以避免 setState 循环
+            if (index == selectedIndex && !isUserTouching && !isFling) return
             selectedIndex = index
             lastSelectedIndex = index
             // 仅在未交互时更新scrollOffset以避免中断用户操作
@@ -390,12 +385,6 @@ class WheelPickerView @JvmOverloads constructor(
     fun setFontFamily(family: String?) {
         fontFamily = family
         applyTypeface()
-        invalidate()
-    }
-
-    fun setTextColor(color: Int) {
-        textColor = color
-        updateTextColor()
         invalidate()
     }
 

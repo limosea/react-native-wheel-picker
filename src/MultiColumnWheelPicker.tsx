@@ -48,10 +48,16 @@ export interface MultiColumnWheelPickerProps {
   textColor?: string;
 
   /**
-   * Text size for all picker items in sp/dp
+   * Text size for all picker items in dp/pt
    * @default 24
    */
   textSize?: number;
+
+  /**
+   * Background color of the selection indicator
+   * @default "#F7F9FF"
+   */
+  selectionBackgroundColor?: string;
 
   /**
    * Whether to trigger callback immediately during scrolling or only when scrolling stops
@@ -77,6 +83,7 @@ export function MultiColumnWheelPicker({
   fontFamily,
   textColor,
   textSize,
+  selectionBackgroundColor,
   immediateCallback = true,
   style,
   testID,
@@ -95,6 +102,7 @@ export function MultiColumnWheelPicker({
             fontFamily={fontFamily}
             textColor={textColor}
             textSize={textSize}
+            selectionBackgroundColor={selectionBackgroundColor}
             immediateCallback={immediateCallback}
             onValueChange={column.onSelect}
             style={styles.picker}

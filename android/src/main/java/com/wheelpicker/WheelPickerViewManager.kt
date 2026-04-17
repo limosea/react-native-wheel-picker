@@ -7,6 +7,7 @@ import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.annotations.ReactProp
 import com.facebook.react.uimanager.events.RCTEventEmitter
+import android.graphics.Color
 
 @ReactModule(name = WheelPickerViewManager.REACT_CLASS)
 class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
@@ -67,6 +68,15 @@ class WheelPickerViewManager : SimpleViewManager<WheelPickerView>() {
     @ReactProp(name = "textSize")
     fun setTextSize(view: WheelPickerView, size: Float) {
         view.setTextSize(size)
+    }
+
+    @ReactProp(name = "selectionBackgroundColor")
+    fun setSelectionBackgroundColor(view: WheelPickerView, color: String?) {
+        color?.let {
+            try {
+                view.setSelectionBackgroundColor(Color.parseColor(it))
+            } catch (_: IllegalArgumentException) {}
+        }
     }
 
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> {

@@ -38,10 +38,16 @@ export interface WheelPickerProps {
   textColor?: string;
 
   /**
-   * Text size for the picker items in sp/dp
+   * Text size for the picker items in dp/pt
    * @default 24
    */
   textSize?: number;
+
+  /**
+   * Background color of the selection indicator
+   * @default "#F7F9FF"
+   */
+  selectionBackgroundColor?: string;
 
   /**
    * Callback when the selected value changes
@@ -73,6 +79,7 @@ interface NativeWheelPickerProps {
   fontFamily?: string;
   textColor?: string;
   textSize?: number;
+  selectionBackgroundColor?: string;
   immediateCallback?: boolean;
   onValueChange?: (event: { nativeEvent: { index: number } }) => void;
   style?: StyleProp<ViewStyle>;
@@ -92,6 +99,7 @@ export function WheelPicker({
   fontFamily,
   textColor,
   textSize,
+  selectionBackgroundColor,
   onValueChange,
   immediateCallback = true,
   style,
@@ -120,6 +128,7 @@ export function WheelPicker({
         fontFamily={fontFamily}
         textColor={textColor}
         textSize={textSize}
+        selectionBackgroundColor={selectionBackgroundColor}
         immediateCallback={immediateCallback}
         onValueChange={handleValueChange}
         style={styles.picker}

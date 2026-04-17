@@ -1,5 +1,5 @@
 {
-  "name": "@sinandsean/react-native-wheel-picker",
+  "name": "@limosea/react-native-wheel-picker",
   "version": "0.1.0",
   "description": "A high-performance native wheel picker for React Native with smooth scrolling, haptic feedback, and customizable styling",
   "main": "lib/commonjs/index.js",
@@ -39,14 +39,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sinandsean/react-native-wheel-picker.git"
+    "url": "git+https://github.com/limosea/react-native-wheel-picker.git"
   },
-  "author": "sinandsean <dev@sinandsean.com>",
+  "author": "limosea",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sinandsean/react-native-wheel-picker/issues"
+    "url": "https://github.com/limosea/react-native-wheel-picker/issues"
   },
-  "homepage": "https://github.com/sinandsean/react-native-wheel-picker#readme",
+  "homepage": "https://github.com/limosea/react-native-wheel-picker#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
